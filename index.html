@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音檔轉字幕工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            position: relative;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+        .lang-switcher {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+        .lang-switcher select {
+            padding: 5px 8px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            font-size: 0.9rem;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        .file-upload-wrapper {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-upload-label {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        .file-upload-label:hover {
+            background-color: #dee2e6;
+        }
+        .file-name {
+            margin-left: 15px;
+            color: #6c757d;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex-grow: 1;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            background-color: #fafafa;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.05rem;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            margin-right: 10px;
+        }
+        button:hover:enabled {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 250px;
+            background-color: #fdfdfd;
+            box-sizing: border-box;
+        }
+        .loading-spinner {
+            border: 5px solid #f3f3f3; border-top: 5px solid #007bff;
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite; margin: 25px auto; display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error-message {
+            color: #d9534f; background-color: #f2dede; border: 1px solid #ebccd1;
+            padding: 12px; margin-top: 15px; border-radius: 8px; display: none;
+        }
+        .button-group { display: flex; gap: 10px; justify-content: flex-start; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="lang-switcher">
+            <select id="uiLanguageSelector">
+                <option value="en">English</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="zh-CN">简体中文</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="es">Español</option>
+            </select>
+        </div>
+
+        <h1 data-i18n-key="title">音檔轉多語言字幕工具</h1>
+
+        <div class="section">
+            <label for="sourceLanguageSelect" data-i18n-key="labelSourceLang">1. 選擇音檔的原始語言:</label>
+            <select id="sourceLanguageSelect"></select>
+        </div>
+        
+        <div class="section">
+            <label for="audioFileInput" data-i18n-key="labelUpload">2. 上傳音檔:</label>
+            <div class="file-upload-wrapper">
+                <label for="audioFileInput" class="file-upload-label" data-i18n-key="uploadBtn">選擇檔案</label>
+                <span class="file-name" data-i18n-key="noFileSelected">未選擇任何檔案</span>
+                <input type="file" id="audioFileInput" accept="audio/*,video/*">
+            </div>
+        </div>
+
+        <div class="section">
+            <label for="targetLanguageSelect" data-i18n-key="labelTargetLang">3. 選擇輸出目標語言:</label>
+            <select id="targetLanguageSelect"></select>
+        </div>
+
+        <div class="section">
+            <label for="outputFormatSelect" data-i18n-key="labelOutputFormat">4. 選擇輸出字幕格式:</label>
+            <select id="outputFormatSelect">
+                <option value="srt">SRT (.srt)</option>
+                <option value="vtt">WebVTT (.vtt)</option>
+                <option value="txt">純文字 (.txt)</option>
+            </select>
+        </div>
+
+        <button id="generateBtn" disabled data-i18n-key="generateBtn">生成字幕</button>
+
+        <div class="loading-spinner" id="loadingSpinner"></div>
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="section" style="margin-top: 30px;">
+            <label for="subtitleOutput" data-i18n-key="labelResult">生成結果:</label>
+            <textarea id="subtitleOutput" rows="20" readonly data-i18n-key-placeholder="placeholderResult"></textarea>
+            <div class="button-group">
+                <button id="copyBtn" disabled data-i18n-key="copyBtn">複製</button>
+                <button id="downloadBtn" disabled data-i18n-key="downloadBtn">下載</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'AIzaSyC2l7mrzCMYcZ33pAOldgVbBiCxGvBuizc';
+        const MODEL_NAME = 'gemini-2.5-flash-preview-05-20';
+        const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent`;
+
+        const translations = {
+            'en': {
+                title: 'Audio to Multilingual Subtitle Tool',
+                labelSourceLang: '1. Select Audio Source Language:',
+                labelUpload: '2. Upload Audio File:',
+                uploadBtn: 'Choose File',
+                noFileSelected: 'No file chosen',
+                labelTargetLang: '3. Select Target Language:',
+                labelOutputFormat: '4. Select Output Format:',
+                generateBtn: 'Generate Subtitles',
+                labelResult: 'Result:',
+                placeholderResult: 'Subtitles will be displayed here...',
+                copyBtn: 'Copy',
+                downloadBtn: 'Download',
+                errorNoFile: 'Error: No file selected.',
+                errorAPI: 'API Request Failed',
+                errorInvalidResponse: 'Invalid API response or transcription failed.',
+                errorGeneric: 'Generation Failed',
+                copiedMsg: 'Copied!',
+                noContentMsg: 'Nothing to download!',
+                langOptions: {
+                    'English': 'English', 'Chinese (Traditional)': 'Chinese (Traditional)', 'Chinese (Simplified)': 'Chinese (Simplified)',
+                    'Japanese': 'Japanese', 'Korean': 'Korean', 'French': 'French', 'German': 'German', 'Spanish': 'Spanish'
+                }
+            },
+            'zh-TW': {
+                title: '音檔轉多語言字幕工具',
+                labelSourceLang: '1. 選擇音檔的原始語言:',
+                labelUpload: '2. 上傳音檔:',
+                uploadBtn: '選擇檔案',
+                noFileSelected: '未選擇任何檔案',
+                labelTargetLang: '3. 選擇輸出目標語言:',
+                labelOutputFormat: '4. 選擇輸出字幕格式:',
+                generateBtn: '生成字幕',
+                labelResult: '生成結果:',
+                placeholderResult: '字幕將在此處顯示...',
+                copyBtn: '複製',
+                downloadBtn: '下載',
+                errorNoFile: '錯誤：未選擇檔案。',
+                errorAPI: 'API 請求失敗',
+                errorInvalidResponse: 'API 回應格式無效或辨識失敗。',
+                errorGeneric: '生成失敗',
+                copiedMsg: '已複製!',
+                noContentMsg: '沒有內容可以下載！',
+                langOptions: {
+                    'English': '英文', 'Chinese (Traditional)': '中文 (繁體)', 'Chinese (Simplified)': '中文 (簡體)',
+                    'Japanese': '日文', 'Korean': '韓文', 'French': '法文', 'German': '德文', 'Spanish': '西班牙文'
+                }
+            },
+            'zh-CN': {
+                title: '音频转多语言字幕工具',
+                labelSourceLang: '1. 选择音频的原始语言:',
+                labelUpload: '2. 上传音频文件:',
+                uploadBtn: '选择文件',
+                noFileSelected: '未选择任何文件',
+                labelTargetLang: '3. 选择输出目标语言:',
+                labelOutputFormat: '4. 选择输出字幕格式:',
+                generateBtn: '生成字幕',
+                labelResult: '生成结果:',
+                placeholderResult: '字幕将在此处显示...',
+                copyBtn: '复制',
+                downloadBtn: '下载',
+                errorNoFile: '错误：未选择文件。',
+                errorAPI: 'API 请求失败',
+                errorInvalidResponse: 'API 响应格式无效或识别失败。',
+                errorGeneric: '生成失败',
+                copiedMsg: '已复制!',
+                noContentMsg: '没有内容可以下载！',
+                langOptions: {
+                    'English': '英文', 'Chinese (Traditional)': '中文 (繁体)', 'Chinese (Simplified)': '中文 (简体)',
+                    'Japanese': '日文', 'Korean': '韩文', 'French': '法文', 'German': '德文', 'Spanish': '西班牙文'
+                }
+            },
+            'ja': {
+                title: '音声から多言語字幕へ変換ツール',
+                labelSourceLang: '1. 音声の言語を選択:',
+                labelUpload: '2. 音声ファイルをアップロード:',
+                uploadBtn: 'ファイルを選択',
+                noFileSelected: 'ファイルが選択されていません',
+                labelTargetLang: '3. 出力言語を選択:',
+                labelOutputFormat: '4. 出力形式を選択:',
+                generateBtn: '字幕を生成',
+                labelResult: '生成結果:',
+                placeholderResult: 'ここに字幕が表示されます...',
+                copyBtn: 'コピー',
+                downloadBtn: 'ダウンロード',
+                errorNoFile: 'エラー：ファイルが選択されていません。',
+                errorAPI: 'APIリクエストが失敗しました',
+                errorInvalidResponse: 'API応答が無効か、文字起こしに失敗しました。',
+                errorGeneric: '生成に失敗しました',
+                copiedMsg: 'コピーしました！',
+                noContentMsg: 'ダウンロードする内容がありません！',
+                langOptions: {
+                    'English': '英語', 'Chinese (Traditional)': '中国語（繁体字）', 'Chinese (Simplified)': '中国語（簡体字）',
+                    'Japanese': '日本語', 'Korean': '韓国語', 'French': 'フランス語', 'German': 'ドイツ語', 'Spanish': 'スペイン語'
+                }
+            },
+            'ko': {
+                title: '오디오 다국어 자막 변환 도구',
+                labelSourceLang: '1. 오디오 원본 언어 선택:',
+                labelUpload: '2. 오디오 파일 업로드:',
+                uploadBtn: '파일 선택',
+                noFileSelected: '선택된 파일 없음',
+                labelTargetLang: '3. 출력 대상 언어 선택:',
+                labelOutputFormat: '4. 출력 자막 형식 선택:',
+                generateBtn: '자막 생성',
+                labelResult: '생성 결과:',
+                placeholderResult: '자막이 여기에 표시됩니다...',
+                copyBtn: '복사',
+                downloadBtn: '다운로드',
+                errorNoFile: '오류: 파일이 선택되지 않았습니다.',
+                errorAPI: 'API 요청 실패',
+                errorInvalidResponse: 'API 응답이 유효하지 않거나 변환에 실패했습니다.',
+                errorGeneric: '생성 실패',
+                copiedMsg: '복사되었습니다!',
+                noContentMsg: '다운로드할 콘텐츠가 없습니다!',
+                langOptions: {
+                    'English': '영어', 'Chinese (Traditional)': '중국어(번체)', 'Chinese (Simplified)': '중국어(간체)',
+                    'Japanese': '일본어', 'Korean': '한국어', 'French': '프랑스어', 'German': '독일어', 'Spanish': '스페인어'
+                }
+            },
+            'fr': {
+                title: 'Outil de Sous-titres Multilingues Audio',
+                labelSourceLang: '1. Sélectionner la langue source de l\'audio :',
+                labelUpload: '2. Télécharger le fichier audio :',
+                uploadBtn: 'Choisir un fichier',
+                noFileSelected: 'Aucun fichier choisi',
+                labelTargetLang: '3. Sélectionner la langue cible :',
+                labelOutputFormat: '4. Sélectionner le format de sortie :',
+                generateBtn: 'Générer les sous-titres',
+                labelResult: 'Résultat :',
+                placeholderResult: 'Les sous-titres s\'afficheront ici...',
+                copyBtn: 'Copier',
+                downloadBtn: 'Télécharger',
+                errorNoFile: 'Erreur : Aucun fichier sélectionné.',
+                errorAPI: 'La requête API a échoué',
+                errorInvalidResponse: 'Réponse API invalide ou transcription échouée.',
+                errorGeneric: 'La génération a échoué',
+                copiedMsg: 'Copié !',
+                noContentMsg: 'Rien à télécharger !',
+                 langOptions: {
+                    'English': 'Anglais', 'Chinese (Traditional)': 'Chinois (Traditionnel)', 'Chinese (Simplified)': 'Chinois (Simplifié)',
+                    'Japanese': 'Japonais', 'Korean': 'Coréen', 'French': 'Français', 'German': 'Allemand', 'Spanish': 'Espagnol'
+                }
+            },
+            'de': {
+                title: 'Audio zu Mehrsprachigen Untertiteln Werkzeug',
+                labelSourceLang: '1. Quellsprache des Audios auswählen:',
+                labelUpload: '2. Audiodatei hochladen:',
+                uploadBtn: 'Datei auswählen',
+                noFileSelected: 'Keine Datei ausgewählt',
+                labelTargetLang: '3. Zielsprache auswählen:',
+                labelOutputFormat: '4. Ausgabeformat auswählen:',
+                generateBtn: 'Untertitel generieren',
+                labelResult: 'Ergebnis:',
+                placeholderResult: 'Untertitel werden hier angezeigt...',
+                copyBtn: 'Kopieren',
+                downloadBtn: 'Herunterladen',
+                errorNoFile: 'Fehler: Keine Datei ausgewählt.',
+                errorAPI: 'API-Anfrage fehlgeschlagen',
+                errorInvalidResponse: 'Ungültige API-Antwort oder Transkription fehlgeschlagen.',
+                errorGeneric: 'Generierung fehlgeschlagen',
+                copiedMsg: 'Kopiert!',
+                noContentMsg: 'Nichts zum Herunterladen!',
+                 langOptions: {
+                    'English': 'Englisch', 'Chinese (Traditional)': 'Chinesisch (Traditionell)', 'Chinese (Simplified)': 'Chinesisch (Vereinfacht)',
+                    'Japanese': 'Japanisch', 'Korean': 'Koreanisch', 'French': 'Französisch', 'German': 'Deutsch', 'Spanish': 'Spanisch'
+                }
+            },
+            'es': {
+                title: 'Herramienta de Subtítulos Multilingües de Audio',
+                labelSourceLang: '1. Seleccionar idioma de origen del audio:',
+                labelUpload: '2. Subir archivo de audio:',
+                uploadBtn: 'Seleccionar archivo',
+                noFileSelected: 'Ningún archivo seleccionado',
+                labelTargetLang: '3. Seleccionar idioma de destino:',
+                labelOutputFormat: '4. Seleccionar formato de salida:',
+                generateBtn: 'Generar Subtítulos',
+                labelResult: 'Resultado:',
+                placeholderResult: 'Los subtítulos se mostrarán aquí...',
+                copyBtn: 'Copiar',
+                downloadBtn: 'Descargar',
+                errorNoFile: 'Error: No se ha seleccionado ningún archivo.',
+                errorAPI: 'La solicitud a la API falló',
+                errorInvalidResponse: 'Respuesta de la API no válida o transcripción fallida.',
+                errorGeneric: 'La generación falló',
+                copiedMsg: '¡Copiado!',
+                noContentMsg: '¡Nada que descargar!',
+                 langOptions: {
+                    'English': 'Inglés', 'Chinese (Traditional)': 'Chino (Tradicional)', 'Chinese (Simplified)': 'Chino (Simplificado)',
+                    'Japanese': 'Japonés', 'Korean': 'Coreano', 'French': 'Francés', 'German': 'Alemán', 'Spanish': 'Español'
+                }
+            }
+        };
+
+        const languageNames = { /* This object is for the AI, mapping internal keys to names it understands */
+            'English': {'English': 'English', 'Chinese (Traditional)': 'Traditional Chinese', 'Chinese (Simplified)': 'Simplified Chinese', 'Japanese': 'Japanese', 'Korean': 'Korean', 'French': 'French', 'German': 'German', 'Spanish': 'Spanish'},
+            'Chinese (Traditional)': {'English': '英文', 'Chinese (Traditional)': '繁體中文', 'Chinese (Simplified)': '簡體中文', 'Japanese': '日文', 'Korean': '韓文', 'French': '法文', 'German': '德文', 'Spanish': '西班牙文'},
+            'Chinese (Simplified)': {'English': '英文', 'Chinese (Traditional)': '繁体中文', 'Chinese (Simplified)': '简体中文', 'Japanese': '日文', 'Korean': '韩文', 'French': '法文', 'German': '德文', 'Spanish': '西班牙文'},
+            'Japanese': {'English': '英語', 'Chinese (Traditional)': '繁体字中国語', 'Chinese (Simplified)': '簡体字中国語', 'Japanese': '日本語', 'Korean': '韓国語', 'French': 'フランス語', 'German': 'ドイツ語', 'Spanish': 'スペイン語'},
+            'Korean': {'English': '영어', 'Chinese (Traditional)': '중국어 번체', 'Chinese (Simplified)': '중국어 간체', 'Japanese': '일본어', 'Korean': '한국어', 'French': '프랑스어', 'German': '독일어', 'Spanish': '스페인어'},
+            'French': {'English': 'Anglais', 'Chinese (Traditional)': 'Chinois Traditionnel', 'Chinese (Simplified)': 'Chinois Simplifié', 'Japanese': 'Japonais', 'Korean': 'Coréen', 'French': 'Français', 'German': 'Allemand', 'Spanish': 'Espagnol'},
+            'German': {'English': 'Englisch', 'Chinese (Traditional)': 'traditionelles Chinesisch', 'Chinese (Simplified)': 'vereinfachtes Chinesisch', 'Japanese': 'Japanisch', 'Korean': 'Koreanisch', 'French': 'Französisch', 'German': 'Deutsch', 'Spanish': 'Spanisch'},
+            'Spanish': {'English': 'Inglés', 'Chinese (Traditional)': 'Chino Tradicional', 'Chinese (Simplified)': 'Chino Simplificado', 'Japanese': 'Japonés', 'Korean': 'Coreano', 'French': 'Francés', 'German': 'Alemán', 'Spanish': 'Español'},
+        };
+
+        const prompts = {
+            'English': {
+                transcribe_base: `You are a professional subtitler. Your task is to transcribe the provided audio into high-quality, easy-to-read English subtitles.`,
+                translate_base: `You are a professional subtitler and translator. Your task is to FIRST TRANSLATE the provided audio into [TARGET_LANGUAGE], and THEN generate high-quality, easy-to-read subtitles in the translated language.`,
+                rules: `\n\nTo enhance readability, please strictly follow these subtitling principles:\n1. **Natural Breaks:** Segment the subtitles at natural pauses in speech.\n2. **Moderate Length:** Each subtitle segment should not be too long (preferably under 80 characters for Western languages).\n3. **Appropriate Timing:** The display duration for each subtitle should match the speaking pace (typically 3-8 seconds).`,
+                srt: `\nPlease strictly follow the SRT format.`, vtt: `\nPlease strictly follow the WebVTT format.`, txt: `\nPlease output a plain text transcript.`,
+                final: `\nPlease wrap the entire subtitle output in a single markdown code block. Do not provide any other information or dialogue outside of the code block.`
+            },
+            'Chinese (Traditional)': {
+                transcribe_base: `你是一個專業的字幕工作者。你的任務是將提供的音檔，轉錄成高品質、易於閱讀的「繁體中文」字幕。`,
+                translate_base: `你是一個專業的字幕工作者與翻譯員。你的任務是，先將提供的音檔內容「翻譯成 [目標語言]」，然後再生成高品質、易於閱讀的字幕。`,
+                rules: `\n\n為了提升可讀性，請嚴格遵循以下字幕切分原則：\n1. **自然斷句：** 在自然的語氣停頓處切分段落。\n2. **長度適中：** 每段字幕的文字不宜過長（盡量控制在 40 個字以內）。\n3. **時間適當：** 每段字幕的顯示時間應與語速匹配（通常建議在 3 到 8 秒之間）。`,
+                srt: `\n請嚴格遵循 SRT 格式。`, vtt: `\n請嚴格遵循 WebVTT 格式。`, txt: `\n請輸出純文字稿。`,
+                final: `\n請將完整的字幕輸出內容用單一的 markdown 代碼塊包裹。除了代碼塊內的字幕內容，不要提供任何其他資訊或對話。`
+            },
+            'Japanese': {
+                transcribe_base: `あなたはプロの字幕制作者です。あなたの任務は、提供された音声を高品質で読みやすい「日本語」の字幕に書き起こすことです。`,
+                translate_base: `あなたはプロの字幕制作者であり、翻訳者です。あなたの任務は、まず提供された音声の内容を「[目標語言]」に翻訳し、その後に高品質で読みやすい字幕を生成することです。`,
+                rules: `\n\n読みやすさを向上させるため、以下の字幕分割ルールを厳守してください：\n1. **自然な区切り：** 自然なポーズでセグメントを分割してください。\n2. **適切な長さ：** 各字幕セグメントのテキストは40文字以内に抑えることが望ましいです。\n3. **適切な表示時間：** 各字幕の表示時間は通常3秒から8秒の間になるようにしてください。`,
+                srt: `\nSRT形式に厳密に従ってください。`, vtt: `\nWebVTT形式に厳密に従ってください。`, txt: `\nプレーンテキストのトランスクリプトを出力してください。`,
+                final: `\n字幕出力全体を単一のマークダウンコードブロックで囲んでください。コードブロック内の字幕内容以外には、いかなる情報も提供しないでください。`
+            },
+            // The logic will handle other languages by falling back to the English prompt structure.
+        };
+
+        const uiLanguageSelector = document.getElementById('uiLanguageSelector');
+        const sourceLanguageSelect = document.getElementById('sourceLanguageSelect');
+        const targetLanguageSelect = document.getElementById('targetLanguageSelect');
+        const audioFileInput = document.getElementById('audioFileInput');
+        const fileNameSpan = document.querySelector('.file-name');
+        const outputFormatSelect = document.getElementById('outputFormatSelect');
+        const generateBtn = document.getElementById('generateBtn');
+        const subtitleOutput = document.getElementById('subtitleOutput');
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const errorMessage = document.getElementById('errorMessage');
+
+        const populateLanguageDropdowns = (lang) => {
+            const langPack = translations[lang] || translations['en'];
+            const options = langPack.langOptions;
+            const currentSourceVal = sourceLanguageSelect.value;
+            const currentTargetVal = targetLanguageSelect.value;
+            sourceLanguageSelect.innerHTML = '';
+            targetLanguageSelect.innerHTML = '';
+            for (const key in options) {
+                const sourceOption = new Option(options[key], key);
+                const targetOption = new Option(options[key], key);
+                sourceLanguageSelect.add(sourceOption);
+                targetLanguageSelect.add(targetOption);
+            }
+            sourceLanguageSelect.value = currentSourceVal || 'Chinese (Traditional)';
+            targetLanguageSelect.value = currentTargetVal || 'Chinese (Traditional)';
+        };
+
+        const updateUI = (lang) => {
+            const langPack = translations[lang] || translations['en'];
+            document.querySelectorAll('[data-i18n-key]').forEach(el => {
+                const key = el.getAttribute('data-i18n-key');
+                if (langPack[key]) el.textContent = langPack[key];
+            });
+            document.querySelectorAll('[data-i18n-key-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-key-placeholder');
+                if(el.tagName === 'TEXTAREA') {
+                    if (langPack[key]) el.placeholder = langPack[key];
+                } else if (audioFileInput.files.length === 0) {
+                     if (langPack[key]) el.textContent = langPack[key];
+                }
+            });
+            document.documentElement.lang = lang;
+            populateLanguageDropdowns(lang);
+        };
+
+        uiLanguageSelector.addEventListener('change', (e) => updateUI(e.target.value));
+
+        audioFileInput.addEventListener('change', () => {
+            if (audioFileInput.files.length > 0) {
+                fileNameSpan.textContent = audioFileInput.files[0].name;
+                generateBtn.disabled = false;
+            } else {
+                const lang = uiLanguageSelector.value;
+                const langPack = translations[lang] || translations['en'];
+                fileNameSpan.textContent = langPack.noFileSelected;
+                generateBtn.disabled = true;
+            }
+        });
+
+        const getBrowserLanguage = () => {
+            const lang = navigator.language || navigator.userLanguage;
+            if (lang.startsWith('zh-TW') || lang.startsWith('zh-Hant')) return 'zh-TW';
+            if (lang.startsWith('zh-CN') || lang.startsWith('zh-Hans')) return 'zh-CN';
+            if (lang.startsWith('ja')) return 'ja';
+            if (lang.startsWith('ko')) return 'ko';
+            if (lang.startsWith('fr')) return 'fr';
+            if (lang.startsWith('de')) return 'de';
+            if (lang.startsWith('es')) return 'es';
+            return 'en';
+        };
+
+        const showLoading = () => { loadingSpinner.style.display = 'block'; generateBtn.disabled = true; subtitleOutput.value = ''; hideError(); };
+        const hideLoading = () => { loadingSpinner.style.display = 'none'; if (audioFileInput.files.length > 0) { generateBtn.disabled = false; } };
+        const showError = (messageKey, fallbackMessage) => { 
+            const currentLang = uiLanguageSelector.value;
+            const langPack = translations[currentLang] || translations['en'];
+            const finalMessage = `${langPack[messageKey] || messageKey}: ${fallbackMessage || ''}`;
+            errorMessage.textContent = finalMessage;
+            errorMessage.style.display = 'block';
+        };
+        const hideError = () => { errorMessage.style.display = 'none'; };
+        const enableOutputButtons = () => { copyBtn.disabled = false; downloadBtn.disabled = false; };
+        const disableOutputButtons = () => { copyBtn.disabled = true; downloadBtn.disabled = true; };
+        const getCurrentDateTimeString = () => new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+        const downloadFile = (filename, content, mimeType) => {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        const generateSubtitles = async () => {
+            const selectedFile = audioFileInput.files[0];
+            if (!selectedFile) { showError('errorNoFile'); return; }
+            showLoading();
+            disableOutputButtons();
+            try {
+                const base64Audio = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(selectedFile);
+                });
+                const sourceLanguage = sourceLanguageSelect.value;
+                const targetLanguage = targetLanguageSelect.value;
+                const outputFormat = outputFormatSelect.value;
+                const promptSet = prompts[sourceLanguage] || prompts['English'];
+                let promptBase;
+                if (sourceLanguage === targetLanguage) {
+                    promptBase = promptSet.transcribe_base;
+                } else {
+                    const targetLanguageName = (languageNames[sourceLanguage] && languageNames[sourceLanguage][targetLanguage]) || targetLanguage;
+                    promptBase = promptSet.translate_base.replace('[目標語言]', `"${targetLanguageName}"`);
+                }
+                let promptText = promptBase + (promptSet.rules || prompts['English'].rules);
+                if (outputFormat === 'srt') promptText += (promptSet.srt || prompts['English'].srt);
+                else if (outputFormat === 'vtt') promptText += (promptSet.vtt || prompts['English'].vtt);
+                else if (outputFormat === 'txt') promptText += (promptSet.txt || prompts['English'].txt);
+                promptText += (promptSet.final || prompts['English'].final);
+                const requestBody = { contents: [{ parts: [{ inlineData: { mimeType: selectedFile.type, data: base64Audio } }, { text: promptText }] }] };
+                const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${API_KEY}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody),
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'Unknown API error');
+                }
+                const data = await response.json();
+                if (!data.candidates?.[0]?.content?.parts) throw new Error('Invalid API response structure.');
+                const responseText = data.candidates[0].content.parts[0].text;
+                const codeBlockRegex = /```(?:\w*\n)?([\s\S]*?)```/;
+                const match = responseText.match(codeBlockRegex);
+                subtitleOutput.value = match?.[1]?.trim() ?? responseText.trim();
+                enableOutputButtons();
+            } catch (error) {
+                console.error('生成字幕時發生錯誤:', error);
+                showError('errorGeneric', error.message);
+                disableOutputButtons();
+            } finally {
+                hideLoading();
+            }
+        };
+
+        generateBtn.addEventListener('click', generateSubtitles);
+        copyBtn.addEventListener('click', () => {
+            if (subtitleOutput.value) {
+                navigator.clipboard.writeText(subtitleOutput.value)
+                    .then(() => {
+                        const langPack = translations[uiLanguageSelector.value] || translations['en'];
+                        copyBtn.textContent = langPack.copiedMsg;
+                        setTimeout(() => { copyBtn.textContent = langPack.copyBtn; }, 2000);
+                    }).catch(err => console.error('複製失敗:', err));
+            }
+        });
+        downloadBtn.addEventListener('click', () => {
+            const subtitleContent = subtitleOutput.value;
+            const langPack = translations[uiLanguageSelector.value] || translations['en'];
+            if (!subtitleContent) { alert(langPack.noContentMsg); return; }
+            const format = outputFormatSelect.value;
+            const datetime = getCurrentDateTimeString();
+            const filename = `${datetime}.${format}`;
+            let mimeType;
+            switch (format) {
+                case 'srt': mimeType = 'application/x-subrip'; break;
+                case 'vtt': mimeType = 'text/vtt'; break;
+                case 'txt': mimeType = 'text/plain'; break;
+                default: mimeType = 'application/octet-stream';
+            }
+            downloadFile(filename, subtitleContent, mimeType);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialLang = getBrowserLanguage();
+            uiLanguageSelector.value = initialLang;
+            updateUI(initialLang);
+        });
+    </script>
+</body>
+</html>
