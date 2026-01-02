@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音檔轉字幕工具</title>
+    <title>AI 音檔轉字幕工具 (Gemini 3.0)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -40,9 +40,22 @@
         h1 {
             color: #2c3e50;
             margin-top: 30px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-align: center;
             font-weight: 600;
+        }
+        .model-badge {
+            display: block;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 0.85rem;
+            color: #007bff;
+            background-color: #e7f1ff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
         }
         .section {
             margin-bottom: 25px;
@@ -84,7 +97,7 @@
             white-space: nowrap;
             flex-grow: 1;
         }
-        select {
+        select, input[type="text"], input[type="password"] {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
@@ -92,6 +105,16 @@
             font-size: 1rem;
             box-sizing: border-box;
             background-color: #fafafa;
+        }
+        /* API Key Specific Styles */
+        .api-key-input {
+            border-color: #b3d7ff;
+            background-color: #f0f7ff;
+        }
+        .api-key-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
         }
         button {
             background-color: #007bff;
@@ -153,7 +176,14 @@
             </select>
         </div>
 
-        <h1 data-i18n-key="title">音檔轉多語言字幕工具</h1>
+        <h1 data-i18n-key="title">AI 音檔轉多語言字幕工具</h1>
+        <span class="model-badge">Model: gemini-3-flash-preview</span>
+
+        <!-- API Key Section Added Here -->
+        <div class="section">
+            <label for="apiKeyInput" data-i18n-key="labelApiKey">Google API 金鑰 (API Key):</label>
+            <input type="password" id="apiKeyInput" class="api-key-input" placeholder="AIzaSy..." autocomplete="off">
+        </div>
 
         <div class="section">
             <label for="sourceLanguageSelect" data-i18n-key="labelSourceLang">1. 選擇音檔的原始語言:</label>
@@ -199,13 +229,16 @@
     </div>
 
     <script>
-        const API_KEY = 'AIzaSyDdxbMBotr8ud3GEHFB0SzgdqJiILTs1qA';
-        const MODEL_NAME = 'gemini-flash-latest';
+        // Updated Model Name for 2026
+        const MODEL_NAME = 'gemini-3-flash-preview';
+        // Base Endpoint
         const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent`;
 
         const translations = {
             'en': {
                 title: 'Audio to Multilingual Subtitle Tool',
+                labelApiKey: 'Google API Key:',
+                placeholderApiKey: 'Enter your Google AI Studio Key (AIzaSy...)',
                 labelSourceLang: '1. Select Audio Source Language:',
                 labelUpload: '2. Upload Audio File:',
                 uploadBtn: 'Choose File',
@@ -218,6 +251,7 @@
                 copyBtn: 'Copy',
                 downloadBtn: 'Download',
                 errorNoFile: 'Error: No file selected.',
+                errorNoApiKey: 'Error: Please enter your Google API Key.',
                 errorAPI: 'API Request Failed',
                 errorInvalidResponse: 'Invalid API response or transcription failed.',
                 errorGeneric: 'Generation Failed',
@@ -229,7 +263,9 @@
                 }
             },
             'zh-TW': {
-                title: '音檔轉多語言字幕工具',
+                title: 'AI 音檔轉多語言字幕工具',
+                labelApiKey: 'Google API 金鑰 (API Key):',
+                placeholderApiKey: '請輸入您的 Google AI Studio 金鑰 (AIzaSy...)',
                 labelSourceLang: '1. 選擇音檔的原始語言:',
                 labelUpload: '2. 上傳音檔:',
                 uploadBtn: '選擇檔案',
@@ -242,6 +278,7 @@
                 copyBtn: '複製',
                 downloadBtn: '下載',
                 errorNoFile: '錯誤：未選擇檔案。',
+                errorNoApiKey: '錯誤：請輸入您的 Google API 金鑰。',
                 errorAPI: 'API 請求失敗',
                 errorInvalidResponse: 'API 回應格式無效或辨識失敗。',
                 errorGeneric: '生成失敗',
@@ -253,7 +290,9 @@
                 }
             },
             'zh-CN': {
-                title: '音频转多语言字幕工具',
+                title: 'AI 音频转多语言字幕工具',
+                labelApiKey: 'Google API 密钥 (API Key):',
+                placeholderApiKey: '请输入您的 Google AI Studio 密钥 (AIzaSy...)',
                 labelSourceLang: '1. 选择音频的原始语言:',
                 labelUpload: '2. 上传音频文件:',
                 uploadBtn: '选择文件',
@@ -266,6 +305,7 @@
                 copyBtn: '复制',
                 downloadBtn: '下载',
                 errorNoFile: '错误：未选择文件。',
+                errorNoApiKey: '错误：请输入您的 Google API 密钥。',
                 errorAPI: 'API 请求失败',
                 errorInvalidResponse: 'API 响应格式无效或识别失败。',
                 errorGeneric: '生成失败',
@@ -277,7 +317,9 @@
                 }
             },
             'ja': {
-                title: '音声から多言語字幕へ変換ツール',
+                title: 'AI 音声から字幕へ変換ツール',
+                labelApiKey: 'Google APIキー:',
+                placeholderApiKey: 'Google AI Studioキーを入力してください (AIzaSy...)',
                 labelSourceLang: '1. 音声の言語を選択:',
                 labelUpload: '2. 音声ファイルをアップロード:',
                 uploadBtn: 'ファイルを選択',
@@ -290,6 +332,7 @@
                 copyBtn: 'コピー',
                 downloadBtn: 'ダウンロード',
                 errorNoFile: 'エラー：ファイルが選択されていません。',
+                errorNoApiKey: 'エラー：Google APIキーを入力してください。',
                 errorAPI: 'APIリクエストが失敗しました',
                 errorInvalidResponse: 'API応答が無効か、文字起こしに失敗しました。',
                 errorGeneric: '生成に失敗しました',
@@ -301,7 +344,9 @@
                 }
             },
             'ko': {
-                title: '오디오 다국어 자막 변환 도구',
+                title: 'AI 오디오 자막 변환 도구',
+                labelApiKey: 'Google API 키:',
+                placeholderApiKey: 'Google AI Studio 키를 입력하세요 (AIzaSy...)',
                 labelSourceLang: '1. 오디오 원본 언어 선택:',
                 labelUpload: '2. 오디오 파일 업로드:',
                 uploadBtn: '파일 선택',
@@ -314,6 +359,7 @@
                 copyBtn: '복사',
                 downloadBtn: '다운로드',
                 errorNoFile: '오류: 파일이 선택되지 않았습니다.',
+                errorNoApiKey: '오류: Google API 키를 입력하십시오.',
                 errorAPI: 'API 요청 실패',
                 errorInvalidResponse: 'API 응답이 유효하지 않거나 변환에 실패했습니다.',
                 errorGeneric: '생성 실패',
@@ -325,19 +371,22 @@
                 }
             },
             'fr': {
-                title: 'Outil de Sous-titres Multilingues Audio',
-                labelSourceLang: '1. Sélectionner la langue source de l\'audio :',
-                labelUpload: '2. Télécharger le fichier audio :',
+                title: 'Outil IA de Sous-titres Multilingues',
+                labelApiKey: 'Clé API Google :',
+                placeholderApiKey: 'Entrez votre clé Google AI Studio (AIzaSy...)',
+                labelSourceLang: '1. Langue source de l\'audio :',
+                labelUpload: '2. Fichier audio :',
                 uploadBtn: 'Choisir un fichier',
                 noFileSelected: 'Aucun fichier choisi',
-                labelTargetLang: '3. Sélectionner la langue cible :',
-                labelOutputFormat: '4. Sélectionner le format de sortie :',
+                labelTargetLang: '3. Langue cible :',
+                labelOutputFormat: '4. Format de sortie :',
                 generateBtn: 'Générer les sous-titres',
                 labelResult: 'Résultat :',
                 placeholderResult: 'Les sous-titres s\'afficheront ici...',
                 copyBtn: 'Copier',
                 downloadBtn: 'Télécharger',
                 errorNoFile: 'Erreur : Aucun fichier sélectionné.',
+                errorNoApiKey: 'Erreur : Veuillez entrer votre clé API Google.',
                 errorAPI: 'La requête API a échoué',
                 errorInvalidResponse: 'Réponse API invalide ou transcription échouée.',
                 errorGeneric: 'La génération a échoué',
@@ -349,21 +398,24 @@
                 }
             },
             'de': {
-                title: 'Audio zu Mehrsprachigen Untertiteln Werkzeug',
-                labelSourceLang: '1. Quellsprache des Audios auswählen:',
+                title: 'AI Audio zu Untertiteln Werkzeug',
+                labelApiKey: 'Google API-Schlüssel:',
+                placeholderApiKey: 'Geben Sie Ihren Google AI Studio-Schlüssel ein (AIzaSy...)',
+                labelSourceLang: '1. Quellsprache:',
                 labelUpload: '2. Audiodatei hochladen:',
                 uploadBtn: 'Datei auswählen',
                 noFileSelected: 'Keine Datei ausgewählt',
-                labelTargetLang: '3. Zielsprache auswählen:',
-                labelOutputFormat: '4. Ausgabeformat auswählen:',
-                generateBtn: 'Untertitel generieren',
+                labelTargetLang: '3. Zielsprache:',
+                labelOutputFormat: '4. Ausgabeformat:',
+                generateBtn: 'Generieren',
                 labelResult: 'Ergebnis:',
                 placeholderResult: 'Untertitel werden hier angezeigt...',
                 copyBtn: 'Kopieren',
                 downloadBtn: 'Herunterladen',
                 errorNoFile: 'Fehler: Keine Datei ausgewählt.',
+                errorNoApiKey: 'Fehler: Bitte geben Sie Ihren Google API-Schlüssel ein.',
                 errorAPI: 'API-Anfrage fehlgeschlagen',
-                errorInvalidResponse: 'Ungültige API-Antwort oder Transkription fehlgeschlagen.',
+                errorInvalidResponse: 'Ungültige API-Antwort.',
                 errorGeneric: 'Generierung fehlgeschlagen',
                 copiedMsg: 'Kopiert!',
                 noContentMsg: 'Nichts zum Herunterladen!',
@@ -373,32 +425,35 @@
                 }
             },
             'es': {
-                title: 'Herramienta de Subtítulos Multilingües de Audio',
-                labelSourceLang: '1. Seleccionar idioma de origen del audio:',
-                labelUpload: '2. Subir archivo de audio:',
+                title: 'Herramienta AI de Subtítulos',
+                labelApiKey: 'Clave API de Google:',
+                placeholderApiKey: 'Ingrese su clave de Google AI Studio (AIzaSy...)',
+                labelSourceLang: '1. Idioma de origen:',
+                labelUpload: '2. Archivo de audio:',
                 uploadBtn: 'Seleccionar archivo',
                 noFileSelected: 'Ningún archivo seleccionado',
-                labelTargetLang: '3. Seleccionar idioma de destino:',
-                labelOutputFormat: '4. Seleccionar formato de salida:',
-                generateBtn: 'Generar Subtítulos',
+                labelTargetLang: '3. Idioma de destino:',
+                labelOutputFormat: '4. Formato de salida:',
+                generateBtn: 'Generar',
                 labelResult: 'Resultado:',
                 placeholderResult: 'Los subtítulos se mostrarán aquí...',
                 copyBtn: 'Copiar',
                 downloadBtn: 'Descargar',
                 errorNoFile: 'Error: No se ha seleccionado ningún archivo.',
+                errorNoApiKey: 'Error: Por favor ingrese su clave API de Google.',
                 errorAPI: 'La solicitud a la API falló',
-                errorInvalidResponse: 'Respuesta de la API no válida o transcripción fallida.',
+                errorInvalidResponse: 'Respuesta de la API no válida.',
                 errorGeneric: 'La generación falló',
                 copiedMsg: '¡Copiado!',
                 noContentMsg: '¡Nada que descargar!',
                  langOptions: {
                     'English': 'Inglés', 'Chinese (Traditional)': 'Chino (Tradicional)', 'Chinese (Simplified)': 'Chino (Simplificado)',
-                    'Japanese': 'Japonés', 'Korean': 'Coreano', 'French': 'Francés', 'German': 'Alemán', 'Spanish': 'Español'
+                    'Japanese': 'Japonés', 'Korean': 'Coreano', 'French': 'Francés', 'German': 'Alemán', 'Spanish': 'Espagnol'
                 }
             }
         };
 
-        const languageNames = { /* This object is for the AI, mapping internal keys to names it understands */
+        const languageNames = {
             'English': {'English': 'English', 'Chinese (Traditional)': 'Traditional Chinese', 'Chinese (Simplified)': 'Simplified Chinese', 'Japanese': 'Japanese', 'Korean': 'Korean', 'French': 'French', 'German': 'German', 'Spanish': 'Spanish'},
             'Chinese (Traditional)': {'English': '英文', 'Chinese (Traditional)': '繁體中文', 'Chinese (Simplified)': '簡體中文', 'Japanese': '日文', 'Korean': '韓文', 'French': '法文', 'German': '德文', 'Spanish': '西班牙文'},
             'Chinese (Simplified)': {'English': '英文', 'Chinese (Traditional)': '繁体中文', 'Chinese (Simplified)': '简体中文', 'Japanese': '日文', 'Korean': '韩文', 'French': '法文', 'German': '德文', 'Spanish': '西班牙文'},
@@ -431,7 +486,6 @@
                 srt: `\nSRT形式に厳密に従ってください。`, vtt: `\nWebVTT形式に厳密に従ってください。`, txt: `\nプレーンテキストのトランスクリプトを出力してください。`,
                 final: `\n字幕出力全体を単一のマークダウンコードブロックで囲んでください。コードブロック内の字幕内容以外には、いかなる情報も提供しないでください。`
             },
-            // The logic will handle other languages by falling back to the English prompt structure.
         };
 
         const uiLanguageSelector = document.getElementById('uiLanguageSelector');
@@ -446,6 +500,20 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const loadingSpinner = document.getElementById('loadingSpinner');
         const errorMessage = document.getElementById('errorMessage');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+
+        // Load API Key from local storage if available
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+            }
+        });
+
+        // Save API Key to local storage on change
+        apiKeyInput.addEventListener('change', () => {
+            localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
+        });
 
         const populateLanguageDropdowns = (lang) => {
             const langPack = translations[lang] || translations['en'];
@@ -472,7 +540,7 @@
             });
             document.querySelectorAll('[data-i18n-key-placeholder]').forEach(el => {
                 const key = el.getAttribute('data-i18n-key-placeholder');
-                if(el.tagName === 'TEXTAREA') {
+                if(el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
                     if (langPack[key]) el.placeholder = langPack[key];
                 } else if (audioFileInput.files.length === 0) {
                      if (langPack[key]) el.textContent = langPack[key];
@@ -530,10 +598,18 @@
         };
 
         const generateSubtitles = async () => {
+            const userApiKey = apiKeyInput.value.trim();
+            if (!userApiKey) {
+                showError('errorNoApiKey');
+                return;
+            }
+
             const selectedFile = audioFileInput.files[0];
             if (!selectedFile) { showError('errorNoFile'); return; }
+            
             showLoading();
             disableOutputButtons();
+            
             try {
                 const base64Audio = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -541,79 +617,43 @@
                     reader.onerror = reject;
                     reader.readAsDataURL(selectedFile);
                 });
+                
                 const sourceLanguage = sourceLanguageSelect.value;
                 const targetLanguage = targetLanguageSelect.value;
                 const outputFormat = outputFormatSelect.value;
+                
                 const promptSet = prompts[sourceLanguage] || prompts['English'];
                 let promptBase;
+                
                 if (sourceLanguage === targetLanguage) {
                     promptBase = promptSet.transcribe_base;
                 } else {
                     const targetLanguageName = (languageNames[sourceLanguage] && languageNames[sourceLanguage][targetLanguage]) || targetLanguage;
                     promptBase = promptSet.translate_base.replace('[目標語言]', `"${targetLanguageName}"`);
                 }
+                
                 let promptText = promptBase + (promptSet.rules || prompts['English'].rules);
                 if (outputFormat === 'srt') promptText += (promptSet.srt || prompts['English'].srt);
                 else if (outputFormat === 'vtt') promptText += (promptSet.vtt || prompts['English'].vtt);
                 else if (outputFormat === 'txt') promptText += (promptSet.txt || prompts['English'].txt);
+                
                 promptText += (promptSet.final || prompts['English'].final);
+                
                 const requestBody = { contents: [{ parts: [{ inlineData: { mimeType: selectedFile.type, data: base64Audio } }, { text: promptText }] }] };
-                const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${API_KEY}`, {
+                
+                // Using userApiKey here
+                const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${userApiKey}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody),
                 });
+                
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error?.message || 'Unknown API error');
                 }
+                
                 const data = await response.json();
                 if (!data.candidates?.[0]?.content?.parts) throw new Error('Invalid API response structure.');
+                
                 const responseText = data.candidates[0].content.parts[0].text;
-                const codeBlockRegex = /```(?:\w*\n)?([\s\S]*?)```/;
-                const match = responseText.match(codeBlockRegex);
-                subtitleOutput.value = match?.[1]?.trim() ?? responseText.trim();
-                enableOutputButtons();
-            } catch (error) {
-                console.error('生成字幕時發生錯誤:', error);
-                showError('errorGeneric', error.message);
-                disableOutputButtons();
-            } finally {
-                hideLoading();
-            }
-        };
+                const codeBlockRegex = /
 
-        generateBtn.addEventListener('click', generateSubtitles);
-        copyBtn.addEventListener('click', () => {
-            if (subtitleOutput.value) {
-                navigator.clipboard.writeText(subtitleOutput.value)
-                    .then(() => {
-                        const langPack = translations[uiLanguageSelector.value] || translations['en'];
-                        copyBtn.textContent = langPack.copiedMsg;
-                        setTimeout(() => { copyBtn.textContent = langPack.copyBtn; }, 2000);
-                    }).catch(err => console.error('複製失敗:', err));
-            }
-        });
-        downloadBtn.addEventListener('click', () => {
-            const subtitleContent = subtitleOutput.value;
-            const langPack = translations[uiLanguageSelector.value] || translations['en'];
-            if (!subtitleContent) { alert(langPack.noContentMsg); return; }
-            const format = outputFormatSelect.value;
-            const datetime = getCurrentDateTimeString();
-            const filename = `${datetime}.${format}`;
-            let mimeType;
-            switch (format) {
-                case 'srt': mimeType = 'application/x-subrip'; break;
-                case 'vtt': mimeType = 'text/vtt'; break;
-                case 'txt': mimeType = 'text/plain'; break;
-                default: mimeType = 'application/octet-stream';
-            }
-            downloadFile(filename, subtitleContent, mimeType);
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const initialLang = getBrowserLanguage();
-            uiLanguageSelector.value = initialLang;
-            updateUI(initialLang);
-        });
-    </script>
-</body>
-</html>
